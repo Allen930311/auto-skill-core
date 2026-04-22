@@ -1,40 +1,99 @@
-# Auto-Skill Core
+# Auto-Skill Core 🧠
 
-Auto-Skill is a framework designed to empower AI Coding Assistants (like Antigravity, Cursor, or Claude Code) with a "Second Brain". It uses a dynamic experience-distillation loop to help the AI learn from its own successes and failures.
+> **Transform your AI from a stateless tool into a self-evolving Second Brain.**
 
-## 🚀 Key Features
+Auto-Skill is a framework designed to empower AI Coding Assistants (like Antigravity, Cursor, or Claude Code) with a recursive distillation loop. It ensures that every success, failure, and technical pitfall is captured, refined, and reused.
 
-*   **Real-time Learning**: Distills specific technical "lessons learned" into reusable rules.
-*   **Context Injection**: Automatically prepares the perfect environment context for every task.
-*   **Global Shielding**: Automatically reinforces your IDE's global rules to ensure the Auto-Skill protocol is never forgotten.
-*   **Privacy First**: Separates the core engine from your private "vault" (experiences, diaries, DNA).
+---
 
-## 🛠️ Installation
+## 🔄 The Self-Evolution Loop
 
-1.  Clone this repository:
-    ```bash
-    git clone https://github.com/your-username/auto-skill-core.git
-    ```
-2.  Setup your configuration:
-    -   Copy `auto-skill.config.example.json` to `auto-skill.config.json`.
-    -   Update the paths appropriate for your Operating System.
-3.  Inject the Startup Protocol:
-    ```bash
-    python scripts/global_reinforce.py
-    ```
+Auto-Skill operates on a continuous feedback loop. Every coding task becomes a source of new intelligence.
 
-## 🧠 How it Works
+```mermaid
+graph TD
+    A[Start Task] -->|SKILL.md| B[Preflight & Context Preparation]
+    B --> C[Execution]
+    C -->|Task Done| D[SKILL_CLOSE.md]
+    D -->|Create Card| E[.diary_queue.md]
+    D -->|Distill Raw Entry| F[Skill Pending Zone]
+    
+    subgraph "Knowledge Crystallization"
+    E -->|Write Diary| G[Daily Review]
+    F -->|Distill KB| H[Permanent Knowledge]
+    end
+    
+    H -->|Enhanced Retrieval| A
+```
 
-The system operates via two primary protocols:
-- **SKILL.md**: Tasks Pre-flight protocol.
-- **SKILL_CLOSE.md**: Tasks Debrief & Distillation protocol.
+---
+
+## 🦋 Experience Sifting (經驗分流)
+
+The heart of the system is how it classifies and stores experiences. We don't just "save notes"; we sift them based on their utility.
+
+```mermaid
+graph LR
+    Entry[Raw Experience Entry] --> Result{Result?}
+    
+    Result -- Success --> Best{Is it a Best Practice?}
+    Best -- Yes --> SkillFile[skill-domain.md: SOP & Commands]
+    Best -- No --> Legacy[legacy-domain.md: Long-term Archive]
+    
+    Result -- Failure --> Worst[skill-domain-worst-practice.md: Pitfalls Library]
+    
+    Legacy --> Pointer[Case Index in Skill File]
+    Worst --> Pointer
+```
+
+### Where does it go?
+1.  **Skill Files (`skill-*.md`)**: High-density SOPs, commands, and refined rules. This is what the AI reads *every time* it starts a task.
+2.  **Legacy Files (`legacy-*.md`)**: Full logs of successful projects. Used as a reference when the AI needs to see "how we did it before."
+3.  **Worst-Practice Files (`*-worst-practice.md`)**: A "minefield map." Records exactly why certain approaches failed to prevent re-trial.
+
+---
+
+## 🧰 Integrated Module Guide
+
+### 📔 1. Diary Skill (The Narrative Layer)
+**Trigger**: `"Write Diary"`, `"Daily Review"`
+
+The Diary skill aggregates all task cards generated during the day into a cohesive daily log.
+- **Goal**: Keep your human-self and AI-self on the same page about progress.
+- **Workflow**: Reads `.diary_queue.md` → Fuses with existing daily notes → Clears the queue.
+
+### 🧪 2. Distill-KB Skill (The Crystallization Layer)
+**Trigger**: `"Distill {domain}"`, `"Crystallize Knowledge"`
+
+This is where the actual "learning" happens.
+- **Goal**: Move raw notes from the "Pending Zone" into the "Refined Zone."
+- **Workflow**: Scans skill files → Extracts SOPs → Routes cases to Legacy/Worst-Practice → Updates the Case Index.
+
+---
+
+## 🛠️ Quick Start
+
+### 1. Installation
+```bash
+git clone https://github.com/Allen930311/auto-skill-core.git
+```
+
+### 2. Configuration
+- Rename `auto-skill.config.example.json` to `auto-skill.config.json`.
+- Set your `vault` path (where your experiences will live).
+
+### 3. Global Shielding
+Run the reinforcement script to bake the protocol into your IDE:
+```bash
+python scripts/global_reinforce.py
+```
 
 ---
 
 ## 📜 Credits
 
-This project is a refactored and generalized version of the original framework created by **[Toolsai/auto-skill](https://github.com/Toolsai/auto-skill)**. Special thanks to the original author for the concept of the distillation loop.
+This project is a refactored and generalized version of the original framework created by **[Toolsai/auto-skill](https://github.com/Toolsai/auto-skill)**. 
 
 ## ⚖️ License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT License.
