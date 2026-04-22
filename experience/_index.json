@@ -1,0 +1,13 @@
+{
+  "lastUpdated": "2026-04-22",
+  "skills": [
+    {
+      "skillId": "sample",
+      "name": "Sample Skill",
+      "file": "skill-sample.md",
+      "count": 2,
+      "last_updated": "2026-04-22",
+      "keywords": ["git", "python", "cleanup"]
+    }
+  ]
+}

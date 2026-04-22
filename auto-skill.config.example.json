@@ -1,0 +1,41 @@
+{
+  "version": "4.0.0",
+  "description": "Auto-Skill configuration template. Update paths for your environment.",
+
+  "pathTemplates": {
+    "D":  "{global_skills}/{id}/SKILL.md",
+    "C":  "{claude_skills}/{id}/SKILL.md",
+    "AS": "{auto_skill}/skills/{id}/SKILL.md"
+  },
+
+  "platforms": {
+    "win32": {
+      "auto_skill":     "C:/Users/{USERNAME}/.gemini/antigravity/global_skills/auto-skill",
+      "global_skills":  "C:/Users/{USERNAME}/.gemini/antigravity/global_skills",
+      "claude_skills":  "C:/Users/{USERNAME}/.claude/skills"
+    },
+    "darwin": {
+      "auto_skill":     "~/.gemini/antigravity/global_skills/auto-skill",
+      "global_skills":  "~/.gemini/antigravity/global_skills",
+      "claude_skills":  "~/.claude/skills"
+    },
+    "linux": {
+      "auto_skill":     "~/.gemini/antigravity/global_skills/auto-skill",
+      "global_skills":  "~/.gemini/antigravity/global_skills",
+      "claude_skills":  "~/.claude/skills"
+    }
+  },
+
+  "specialPaths": {
+    "vault": "{USER_HOME}/note",
+    "diary": "{vault}/10_Daily"
+  },
+
+  "mcpSkills": ["voicebox", "colab-mcp"],
+
+  "notes": {
+    "{USERNAME}": "Automatically detected from OS environment",
+    "{USER_HOME}": "Automatically detected from OS environment",
+    "Setup": "1. Rename this to auto-skill.config.json. 2. Update paths. 3. Run setup."
+  }
+}
