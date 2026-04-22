@@ -1,5 +1,7 @@
 # Auto-Skill Core 🧠
 
+[中文版本 (Chinese Version)](./README_zh.md)
+
 > **Transform your AI from a stateless tool into a self-evolving Second Brain.**
 
 Auto-Skill is a framework designed to empower AI Coding Assistants (like Antigravity, Cursor, or Claude Code) with a recursive distillation loop. It ensures that every success, failure, and technical pitfall is captured, refined, and reused.
