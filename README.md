@@ -2,6 +2,8 @@
 
 [中文版本 (Chinese Version)](./README_zh.md)
 
+**A cross-platform memory management system for all your agentic AIs.** Whether you use Claude, ChatGPT, or Gemini, your hard-earned technical experiences roam with you, ensuring you never lose your progress when switching models.
+
 > **Transform your AI from a stateless tool into a self-evolving Second Brain.**
 
 Auto-Skill is a framework designed to empower AI Coding Assistants (like Antigravity, Cursor, or Claude Code) with a recursive distillation loop. It ensures that every success, failure, and technical pitfall is captured, refined, and reused.
