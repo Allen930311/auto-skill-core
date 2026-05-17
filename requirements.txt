@@ -1,0 +1,9 @@
+# Auto-Skill Core — Python dependencies
+#
+# All scripts use the Python standard library only (json, pathlib, re, math, etc.).
+# No pip install required.
+#
+# Minimum supported version: Python 3.8
+#
+# Optional integrations (install separately if needed):
+#   pip install rank-bm25   # if you want to swap bm25_engine.py for the rank-bm25 library
