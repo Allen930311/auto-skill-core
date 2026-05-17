@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import json
 import os
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +20,7 @@ EXP_INDEX = EXP_DIR / "_index.json"
 KB_INDEX  = KB_DIR / "_index.json"
 
 
-# ── Config ───────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 
 def get_config():
     config_path = BASE_DIR / "auto-skill.config.json"
@@ -64,7 +63,8 @@ def get_config():
 
 config_data = get_config()
 VAULT_DIR = Path(config_data.get("special", {}).get("vault", os.path.expanduser("~/note")))
-DAILY_DIR = VAULT_DIR / "10_Daily"
+DIARY_QUEUE = Path(config_data.get("special", {}).get("diary_queue",
+    str(BASE_DIR / ".diary_queue.md")))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -72,6 +72,8 @@ DAILY_DIR = VAULT_DIR / "10_Daily"
 def get_today():
     return datetime.now().strftime("%Y-%m-%d")
 
+def now_str():
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 def load_json(path):
     p = Path(path)
@@ -79,7 +81,6 @@ def load_json(path):
         return None
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
-
 
 def save_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
@@ -141,6 +142,49 @@ def cmd_search(keywords, top_n=5, include_kb=False):
         print(f"  [{r['score']:.2f}] {r['name']}{tag} → {r['file']}")
 
 
+# ── Vault Query ───────────────────────────────────────────────────────────────
+
+def cmd_vault_query(keywords, top_n=5):
+    """BM25 search across all markdown files in the vault directory."""
+    query = " ".join(keywords)
+
+    if not VAULT_DIR.exists():
+        print(f"Vault not found: {VAULT_DIR}")
+        print("Update 'specialPaths.vault' in auto-skill.config.json")
+        return
+
+    docs = []
+    for md_file in VAULT_DIR.rglob("*.md"):
+        try:
+            text = md_file.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        docs.append({
+            "id": str(md_file.relative_to(VAULT_DIR)),
+            "file": str(md_file),
+            "name": md_file.stem,
+            "type": "vault",
+            "text": text,
+        })
+
+    if not docs:
+        print(f"No markdown files found in vault: {VAULT_DIR}")
+        return
+
+    engine = BM25Engine()
+    engine.add_documents(docs)
+    results = engine.search(query, top_n=top_n)
+
+    if not results:
+        print(f"No vault results for: {query}")
+        return
+
+    print(f"Top {len(results)} vault results for '{query}':")
+    for r in results:
+        print(f"  [{r['score']:.2f}] {r['name']}")
+        print(f"           {r['file']}")
+
+
 # ── Index Management ──────────────────────────────────────────────────────────
 
 def cmd_update_index():
@@ -196,6 +240,56 @@ def cmd_add(skill_id, content, is_kb=False):
     print(f"Appended to {entry['file']} (total entries: {entry['count']})")
 
 
+# ── Snapshot (Failure / Multi-attempt lesson) ─────────────────────────────────
+
+def cmd_snapshot(skill_id, lesson, task_type="general"):
+    """
+    Append a compact failure/lesson snapshot directly to knowledge-base.
+    Used by SKILL_CLOSE Step F2 for failed tasks or tasks with ≥3 attempts.
+    """
+    today = get_today()
+    kb_index = load_json(KB_INDEX)
+
+    # Try to find an existing KB category for this skill; fall back to general
+    target_cat = None
+    if kb_index:
+        target_cat = next(
+            (c for c in kb_index.get("categories", []) if skill_id in c.get("id", "")),
+            None
+        )
+        if not target_cat:
+            # Use first available category as fallback
+            cats = kb_index.get("categories", [])
+            target_cat = cats[0] if cats else None
+
+    if not target_cat:
+        print("No KB categories found. Run preflight or create knowledge-base/_index.json.")
+        return
+
+    file_path = KB_DIR / target_cat["file"]
+    if not file_path.exists():
+        file_path.write_text(f"# {target_cat.get('name', target_cat['id'])}\n", encoding="utf-8")
+
+    snapshot_entry = (
+        f"\n---\n\n"
+        f"## 💥 Snapshot: {lesson[:80]} ({today}) [{task_type}]\n"
+        f"**Skill:** {skill_id}\n"
+        f"**Lesson:** {lesson}\n"
+        f"**Task Type:** {task_type}\n"
+    )
+
+    with open(file_path, "a", encoding="utf-8") as f:
+        f.write(snapshot_entry)
+
+    target_cat["count"] = target_cat.get("count", 0) + 1
+    target_cat["last_updated"] = today
+    if kb_index:
+        kb_index["lastUpdated"] = today
+        save_json(KB_INDEX, kb_index)
+
+    print(f"Snapshot written to {target_cat['file']}: {lesson[:60]}...")
+
+
 # ── Preflight ────────────────────────────────────────────────────────────────
 
 def cmd_preflight():
@@ -206,12 +300,16 @@ def cmd_preflight():
         issues.append(f"Missing: {KB_INDEX}")
     if not (BASE_DIR / "auto-skill.config.json").exists():
         issues.append("Missing: auto-skill.config.json  (copy from auto-skill.config.example.json)")
+    if not VAULT_DIR.exists():
+        issues.append(f"Vault not found: {VAULT_DIR}  (update specialPaths.vault in config)")
     if issues:
         print("Preflight FAILED:")
         for i in issues:
             print(f"  ✗ {i}")
         sys.exit(1)
     print("Preflight OK — all required files present.")
+    print(f"  Vault : {VAULT_DIR}")
+    print(f"  Queue : {DIARY_QUEUE}")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -223,16 +321,25 @@ if __name__ == "__main__":
     sub = parser.add_subparsers(dest="command")
 
     p_search = sub.add_parser("search", help="BM25 search across experience files")
-    p_search.add_argument("keywords", nargs="+", help="Search terms")
-    p_search.add_argument("-n", type=int, default=5, help="Number of results (default 5)")
+    p_search.add_argument("keywords", nargs="+")
+    p_search.add_argument("-n", type=int, default=5)
     p_search.add_argument("--kb", action="store_true", help="Also search knowledge-base")
+
+    p_vault = sub.add_parser("vault-query", help="BM25 search across all vault markdown files")
+    p_vault.add_argument("keywords", nargs="+")
+    p_vault.add_argument("-n", type=int, default=5)
 
     sub.add_parser("update-index", help="Rebuild experience/_index.json from skill files")
 
     p_add = sub.add_parser("add", help="Append an entry to a skill or KB file")
-    p_add.add_argument("skill_id", help="Target skill/category ID")
-    p_add.add_argument("content", help="Markdown content to append")
-    p_add.add_argument("--kb", action="store_true", help="Target knowledge-base instead of experience")
+    p_add.add_argument("skill_id")
+    p_add.add_argument("content")
+    p_add.add_argument("--kb", action="store_true")
+
+    p_snap = sub.add_parser("snapshot", help="Append a compact failure/lesson snapshot to KB (Step F2)")
+    p_snap.add_argument("--skill-id", required=True)
+    p_snap.add_argument("--lesson", required=True, help="Lesson in ≤80 chars")
+    p_snap.add_argument("--task-type", default="general")
 
     sub.add_parser("preflight", help="Verify environment is ready")
 
@@ -240,10 +347,14 @@ if __name__ == "__main__":
 
     if args.command == "search":
         cmd_search(args.keywords, top_n=args.n, include_kb=args.kb)
+    elif args.command == "vault-query":
+        cmd_vault_query(args.keywords, top_n=args.n)
     elif args.command == "update-index":
         cmd_update_index()
     elif args.command == "add":
         cmd_add(args.skill_id, args.content, is_kb=args.kb)
+    elif args.command == "snapshot":
+        cmd_snapshot(args.skill_id, args.lesson, task_type=args.task_type)
     elif args.command == "preflight":
         cmd_preflight()
     else:
