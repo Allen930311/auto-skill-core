@@ -70,16 +70,43 @@ Archive technical pitfalls immediately to ensure they are searchable next time.
 
 ---
 
+## E. Sub-skill Linkage
+
+Identify if this task touched skills beyond the primary one:
+1. List all skill IDs that were loaded or referenced during this session.
+2. For each secondary skill, append a cross-reference note in `experience/_index.json` under a `"related"` array.
+3. If a new skill domain was used that has no existing skill file, create a stub `experience/skill-[new-id].md` and register it via:
+   ```
+   python scripts/experience_api.py update-index
+   ```
+
+---
+
+## F. Keyword Evolution
+
+Review and update the `t[]` trigger word list in `experience/_index.json` for the primary skill:
+1. Add any new terms used in this session that weren't in `t[]` before.
+2. Remove terms that proved to be noise (matched but were irrelevant).
+3. Target: 5–10 high-signal trigger words per skill.
+
+```json
+{ "skillId": "example", "t": ["new-term", "existing-term", ...] }
+```
+
+Save with:
+```
+python scripts/experience_api.py update-index
+```
+
+---
+
 ## G. System Sync
 
 ```powershell
 # 1. Update index
 python scripts/experience_api.py update-index
 
-# 2. Rebuild search vectors (if using QMD)
-qmd embed
-
-# 3. Optional: Sync to Vault
+# 2. Optional: Sync to Vault
 python scripts/bridge_sync.py push
 ```
 
@@ -97,6 +124,7 @@ Print a high-density summary card to the conversation.
 ✅ Result: <Score>
 🔧 Key Solution: <Main takeaway>
 📌 Pitfalls: <If any>
+🔗 Sub-skills touched: <skill-id-1>, <skill-id-2>
 ⏭️ Next Steps:
    * [ ] <Todo>
 ═══════════════════════════════════════════════
