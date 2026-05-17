@@ -1,0 +1,17 @@
+# Personal config — contains private paths, never commit
+auto-skill.config.json
+
+# Python cache
+*.pyc
+__pycache__/
+
+# BM25 index cache
+experience/.bm25_cache.json
+
+# Runtime files
+.diary_queue.md
+AGENT_CONTEXT.md
+
+# OS
+.DS_Store
+Thumbs.db
