@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
+import shutil
+from datetime import datetime
 from pathlib import Path
 
-# 使用 UTF-8 輸出以相容 Windows
 if sys.platform == "win32":
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -18,10 +19,18 @@ PROTOCOL_CONTENT = f"""
 
 TARGET_FILES = {
     "Antigravity": "~/.gemini/GEMINI.md",
-    "Cursor": "~/.cursor/rules/global.mdc",
+    "Cursor":      "~/.cursor/rules/global.mdc",
     "Claude Code": "~/.claude/CLAUDE.md",
-    "Codex": "~/.codex/instructions.md"
+    "Codex":       "~/.codex/instructions.md",
 }
+
+
+def backup(path: Path):
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = path.with_suffix(f".bak_{ts}{path.suffix}")
+    shutil.copy2(path, backup_path)
+    print(f"    💾 Backed up to {backup_path.name}")
+
 
 def reinforce():
     print("🔍 啟動全局規則加固偵測...")
@@ -29,27 +38,30 @@ def reinforce():
     updated_files = []
 
     for ide, rel_path in TARGET_FILES.items():
-        # 處理 Windows 下的路徑符號與擴展
         full_path = home / rel_path.replace("~/", "")
-        
+
         if not full_path.parent.exists():
+            print(f"  ▸ {ide}: parent directory not found, skipping.")
             continue
-            
+
         print(f"  ▸ 偵測到 {ide} 環境: {full_path}")
-        
+
         content = ""
         if full_path.exists():
             content = full_path.read_text(encoding="utf-8")
-        
+
         if PROTOCOL_MARKER in content:
             print(f"    ✅ 已包含啟動協議，跳過。")
             continue
-            
-        # 追加規則
+
         print(f"    ⚠️  未偵測到協議，正在自動追加...")
+
+        if full_path.exists():
+            backup(full_path)
+
         separator = "\n\n---\n" if content.strip() else ""
         new_content = content.rstrip() + separator + PROTOCOL_CONTENT
-        
+
         try:
             full_path.write_text(new_content, encoding="utf-8")
             updated_files.append(ide)
@@ -57,10 +69,11 @@ def reinforce():
             print(f"    ❌ 寫入失敗: {e}")
 
     if updated_files:
-        print("\n✨ 我已自動加固您的全局規則，確保 auto-skill 協議永久生效。")
+        print("\n✨ 已自動加固全局規則，auto-skill 協議永久生效。")
         print(f"   受影響環境: {', '.join(updated_files)}")
     else:
         print("\n✅ 所有 IDE 環境均已符合開發協議。")
+
 
 if __name__ == "__main__":
     reinforce()
