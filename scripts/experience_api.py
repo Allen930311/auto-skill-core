@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
 import os
+import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -66,14 +68,14 @@ VAULT_DIR = Path(config_data.get("special", {}).get("vault", os.path.expanduser(
 DIARY_QUEUE = Path(config_data.get("special", {}).get("diary_queue",
     str(BASE_DIR / ".diary_queue.md")))
 
+# Read qmd collection name from config if set, else use default
+QMD_COLLECTION = config_data.get("raw", {}).get("qmdCollection", "auto-skill-exp")
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_today():
     return datetime.now().strftime("%Y-%m-%d")
-
-def now_str():
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 def load_json(path):
     p = Path(path)
@@ -86,8 +88,11 @@ def save_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+def qmd_available():
+    return shutil.which("qmd") is not None
 
-# ── BM25 Search ───────────────────────────────────────────────────────────────
+
+# ── Search ────────────────────────────────────────────────────────────────────
 
 def _build_corpus(include_kb=False):
     docs = []
@@ -124,8 +129,23 @@ def _build_corpus(include_kb=False):
     return docs
 
 
-def cmd_search(keywords, top_n=5, include_kb=False):
+def cmd_search(keywords, top_n=5, include_kb=False, semantic=False):
     query = " ".join(keywords)
+
+    if semantic:
+        if qmd_available():
+            # Passthrough to qmd for semantic (vector) search
+            cmd = ["qmd", "search", query, "-c", QMD_COLLECTION, "-n", str(top_n)]
+            print(f"[semantic] qmd search: {query}")
+            result = subprocess.run(cmd, text=True, encoding="utf-8")
+            if result.returncode != 0:
+                print("qmd returned non-zero exit code — falling back to BM25.")
+            else:
+                return
+        else:
+            print("[semantic] qmd not found — falling back to BM25.")
+
+    # BM25 fallback (or default when --semantic not set)
     docs = _build_corpus(include_kb=include_kb)
     if not docs:
         print("No documents indexed. Run `update-index` first.")
@@ -136,7 +156,8 @@ def cmd_search(keywords, top_n=5, include_kb=False):
     if not results:
         print(f"No results for: {query}")
         return
-    print(f"Top {len(results)} results for '{query}':")
+    label = "[BM25 fallback]" if semantic else "[BM25]"
+    print(f"{label} Top {len(results)} results for '{query}':")
     for r in results:
         tag = f" [{r['type']}]" if include_kb else ""
         print(f"  [{r['score']:.2f}] {r['name']}{tag} → {r['file']}")
@@ -250,7 +271,6 @@ def cmd_snapshot(skill_id, lesson, task_type="general"):
     today = get_today()
     kb_index = load_json(KB_INDEX)
 
-    # Try to find an existing KB category for this skill; fall back to general
     target_cat = None
     if kb_index:
         target_cat = next(
@@ -258,7 +278,6 @@ def cmd_snapshot(skill_id, lesson, task_type="general"):
             None
         )
         if not target_cat:
-            # Use first available category as fallback
             cats = kb_index.get("categories", [])
             target_cat = cats[0] if cats else None
 
@@ -308,8 +327,10 @@ def cmd_preflight():
             print(f"  ✗ {i}")
         sys.exit(1)
     print("Preflight OK — all required files present.")
-    print(f"  Vault : {VAULT_DIR}")
-    print(f"  Queue : {DIARY_QUEUE}")
+    print(f"  Vault      : {VAULT_DIR}")
+    print(f"  Queue      : {DIARY_QUEUE}")
+    print(f"  qmd        : {'available' if qmd_available() else 'not found (BM25 will be used)'}")
+    print(f"  Collection : {QMD_COLLECTION}")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -320,10 +341,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auto-Skill Core API")
     sub = parser.add_subparsers(dest="command")
 
-    p_search = sub.add_parser("search", help="BM25 search across experience files")
+    p_search = sub.add_parser("search", help="Search experience files (BM25 by default, qmd with --semantic)")
     p_search.add_argument("keywords", nargs="+")
     p_search.add_argument("-n", type=int, default=5)
-    p_search.add_argument("--kb", action="store_true", help="Also search knowledge-base")
+    p_search.add_argument("--kb", action="store_true", help="Also search knowledge-base (BM25 only)")
+    p_search.add_argument("--semantic", action="store_true",
+                          help="Use qmd for semantic search; falls back to BM25 if qmd is unavailable")
 
     p_vault = sub.add_parser("vault-query", help="BM25 search across all vault markdown files")
     p_vault.add_argument("keywords", nargs="+")
@@ -341,12 +364,12 @@ if __name__ == "__main__":
     p_snap.add_argument("--lesson", required=True, help="Lesson in ≤80 chars")
     p_snap.add_argument("--task-type", default="general")
 
-    sub.add_parser("preflight", help="Verify environment is ready")
+    sub.add_parser("preflight", help="Verify environment and show search engine status")
 
     args = parser.parse_args()
 
     if args.command == "search":
-        cmd_search(args.keywords, top_n=args.n, include_kb=args.kb)
+        cmd_search(args.keywords, top_n=args.n, include_kb=args.kb, semantic=args.semantic)
     elif args.command == "vault-query":
         cmd_vault_query(args.keywords, top_n=args.n)
     elif args.command == "update-index":
