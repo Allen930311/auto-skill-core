@@ -21,19 +21,10 @@ description: "Cross-agent memory engine. Express Route -> Task -> Query KB on er
 | Trigger Keywords (any match) | Action |
 |---|---|
 | write diary / today log / daily review / diary | Run `skills/diary` workflow |
-| git / push / commit / PR / sync repo | Run github-sync protocol |
 | distill / distill kb / organize experience / crystallize | Run `skills/distill-kb` workflow |
-| debug / error / bug / check log / why is it | Start immediately — no pre-analysis |
-| quant / alpha / brain / factor research | Read `experience/skill-worldquant.md` |
-| trading strategy / strategy research / backtest | Read `experience/skill-trading.md` |
-| bounty / open source bounty / security bug | Read `experience/skill-bounty.md` |
-| scraping / browser automation / playwright | Read `experience/skill-browser-automation.md` |
-| scripting / automation / pipeline / batch job | Read `experience/skill-scripting-automation.md` |
-| new skill / add skill / write experience / skill creator | Read `experience/skill-skill-mgmt.md` |
-| update skill / update repo / look at this repo | Read `experience/skill-skill-mgmt.md` → apply SGAP protocol |
-| chemistry / paper / synthesis / literature | Read `experience/skill-chemistry-research.md` |
-| video analysis / youtube analysis / channel audit | Read `experience/skill-video-analysis.md` |
 | **task done** / finished / completed / mission complete | Read `SKILL_CLOSE.md` → execute A→B→C→D→E→F→F2→H→G |
+
+> **Add your own domain routes here.** The three above are built-in. For anything else (trading, research, automation, etc.), add a row pointing to your own `experience/skill-{id}.md`. Domain-specific routes are intentionally left out — your experiences are yours to define.
 
 ---
 
