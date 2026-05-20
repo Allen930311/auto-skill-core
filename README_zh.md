@@ -82,7 +82,8 @@ git clone https://github.com/Allen930311/auto-skill-core.git
 
 ### 2. 配置
 - 將 `auto-skill.config.example.json` 重新命名為 `auto-skill.config.json`。
-- 設定您的 `vault` 路徑（經驗與知識庫存放的位置）。
+
+> **備註 — vault 路徑（選用）：** 設定 vault 路徑是開發者自己的作業習慣，用於將經驗同步至 Obsidian Vault。若您不需要此項，直接告訴您的 AI：*「把 SKILL.md 裡的 vault 路徑步驟刪掉，我不需要。」* AI 會自動縮短啟動流程。
 
 ### 3. 全局加固 (Global Shielding)
 執行加固腳本，將自動啟動協議注入您的 IDE 全局規則中：
