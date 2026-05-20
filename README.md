@@ -84,7 +84,8 @@ git clone https://github.com/Allen930311/auto-skill-core.git
 
 ### 2. Configuration
 - Rename `auto-skill.config.example.json` to `auto-skill.config.json`.
-- Set your `vault` path (where your experiences will live).
+
+> **Note — vault path (optional):** Setting a `vault` path is the original developer's personal habit for syncing experiences to an Obsidian vault. If you do not use such a setup, simply tell your AI: *"Remove the vault path step from SKILL.md — I do not need it."* The AI will trim the startup flow accordingly.
 
 ### 3. Global Shielding
 Run the reinforcement script to bake the protocol into your IDE:
