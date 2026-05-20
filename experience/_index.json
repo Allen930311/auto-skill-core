@@ -1,14 +1,136 @@
 {
-  "lastUpdated": "2026-05-17",
+  "lastUpdated": "2026-05-20",
   "skills": [
     {
       "skillId": "sample",
-      "name": "Sample Skill",
+      "name": "Sample Skill (Template Reference)",
       "file": "skill-sample.md",
       "count": 2,
-      "last_updated": "2026-05-17",
-      "t": ["git", "branch", "cleanup", "python", "venv", "pip"],
-      "keywords": ["git", "python", "cleanup"]
+      "last_updated": "2026-05-20",
+      "t": [
+        "git",
+        "branch",
+        "cleanup",
+        "python",
+        "venv",
+        "pip",
+        "dependency-conflict"
+      ],
+      "keywords": [
+        "git",
+        "python",
+        "cleanup",
+        "venv"
+      ]
+    },
+    {
+      "skillId": "skill-mgmt",
+      "name": "Skill Management (SGAP / Registry)",
+      "file": "skill-skill-mgmt.md",
+      "count": 0,
+      "last_updated": "",
+      "t": [
+        "skill",
+        "sgap",
+        "registry",
+        "github-research",
+        "distill",
+        "experience",
+        "new skill",
+        "add skill"
+      ],
+      "keywords": [
+        "skill-management",
+        "sgap",
+        "registry",
+        "knowledge-distillation"
+      ]
+    },
+    {
+      "skillId": "scripting-automation",
+      "name": "Scripting & Automation",
+      "file": "skill-scripting-automation.md",
+      "count": 0,
+      "last_updated": "",
+      "t": [
+        "scripting",
+        "automation",
+        "pipeline",
+        "batch",
+        "cron",
+        "schedule",
+        "python script"
+      ],
+      "keywords": [
+        "scripting",
+        "automation",
+        "pipeline",
+        "python"
+      ]
+    },
+    {
+      "skillId": "browser-automation",
+      "name": "Browser Automation / Playwright",
+      "file": "skill-browser-automation.md",
+      "count": 0,
+      "last_updated": "",
+      "t": [
+        "playwright",
+        "browser",
+        "scraping",
+        "selenium",
+        "puppeteer",
+        "web automation"
+      ],
+      "keywords": [
+        "playwright",
+        "browser-automation",
+        "scraping"
+      ]
+    },
+    {
+      "skillId": "trading",
+      "name": "Trading & Quant Research",
+      "file": "skill-trading.md",
+      "count": 0,
+      "last_updated": "",
+      "t": [
+        "trading",
+        "quant",
+        "alpha",
+        "strategy",
+        "backtest",
+        "factor",
+        "brain",
+        "worldquant"
+      ],
+      "keywords": [
+        "trading",
+        "quant",
+        "alpha",
+        "strategy"
+      ]
+    },
+    {
+      "skillId": "bounty",
+      "name": "Open Source Security Bounty",
+      "file": "skill-bounty.md",
+      "count": 0,
+      "last_updated": "",
+      "t": [
+        "bounty",
+        "security",
+        "vulnerability",
+        "cve",
+        "huntr",
+        "bug-bounty",
+        "open-source-bounty"
+      ],
+      "keywords": [
+        "bounty",
+        "security",
+        "vulnerability"
+      ]
     }
   ]
 }
