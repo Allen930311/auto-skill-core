@@ -1,10 +1,10 @@
 ---
 name: auto-skill-core
-version: 4.1.0
+version: 4.2.0
 description: "Cross-agent memory engine. Express Route -> Task -> Query KB on error -> Archive on close."
 ---
 
-# Auto-Skill v4.1 — Core Engine
+# Auto-Skill v4.2 — Core Engine
 
 ## Startup (Once per conversation)
 
@@ -22,7 +22,7 @@ description: "Cross-agent memory engine. Express Route -> Task -> Query KB on er
 |---|---|
 | write diary / today log / daily review / diary | Run `skills/diary` workflow |
 | distill / distill kb / organize experience / crystallize | Run `skills/distill-kb` workflow |
-| **task done** / finished / completed / mission complete | Read `SKILL_CLOSE.md` → execute A→B→C→D→E→F→F2→H→G |
+| **task done** / finished / completed / mission complete | Read `SKILL_CLOSE.md` → execute A→B→C→E→F→F2→H→G |
 
 > **Add your own domain routes here.** The three above are built-in. For anything else (trading, research, automation, etc.), add a row pointing to your own `experience/skill-{id}.md`. Domain-specific routes are intentionally left out — your experiences are yours to define.
 
@@ -46,6 +46,12 @@ python scripts/experience_api.py search "<keywords>" -n 3
 
 ### Merge & Load
 Deduplicate Track A + Track B results → Read all files → Start task.
+
+> **Progressive load (project-ledger skills)**: Before reading `experience/skill-{id}.md`, check whether
+> that id appears under `experienceRouting` in `auto-skill.config.json` with `mode: "project-ledger"`.
+> If so, the global file is only a **map** — read it to learn where things live, then start.
+> Do **not** pre-load its `caseLedger`; open that only when the task genuinely needs case history.
+> This is what keeps a mature skill's startup cost flat as its history grows.
 
 > **Session cache**: Files already read in this conversation are not re-read (skip on hit).
 > **Topic drift**: If 2+ consecutive messages introduce keywords not in any loaded file → re-run parallel load (session cache prevents re-reading old files).

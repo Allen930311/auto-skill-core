@@ -8,10 +8,15 @@
 ## Execution Flow
 
 ```
-A Summary → B Experience Archive → C Pitfall Archive → D Reflection
+A Summary → B Experience Archive → C Pitfall & Reflection Archive
 → E Sub-skill Linkage → F Keyword Evolution → F2 Failure Snapshot
 → H Summary Card → G System Sync
 ```
+
+> **Only lightweight steps run every time** (A / B / C / E / H + the cheap index sync).
+> Heavy operations — rewriting the trigger index, rebuilding search vectors, vault mirroring —
+> are **deferred until a threshold is reached**. See *Accumulation Counter* before section F.
+> This keeps a routine debrief cheap: appending one entry should cost a file write, not a full re-index.
 
 ---
 
@@ -25,6 +30,18 @@ A Summary → B Experience Archive → C Pitfall Archive → D Reflection
 | Environment Preferences | `knowledge-base/user-dna.md` | Keep technical pitfalls out of here |
 
 > **Do NOT archive**: one-off Q&A, pure concept explanations, non-reusable conclusions.
+
+### Project-level routing (takes precedence over the table above)
+
+Before section B, check `experienceRouting[<skill-id>]` in `auto-skill.config.json`.
+If it exists and `mode = "project-ledger"`:
+
+1. Full cases go **only** to `caseLedger` — never to the global `experience/skill-{id}.md`.
+2. Every case needs a unique `case_id: YYYY-MM-DD-<slug>`. Search for it before appending;
+   if it exists, add a correction entry (`<original-case-id>-correction-N`) rather than writing twice.
+3. `legacyArchive` is read-only.
+4. The global file is a map, not a ledger — update it only when the entry point, paths,
+   or governance rules change.
 
 ---
 
@@ -105,7 +122,7 @@ last_distilled: (not yet)
 
 ---
 
-## C. Pitfall Archive → `knowledge-base/[category].md` (if any)
+## C. Pitfall & Reflection Archive → `knowledge-base/[category].md` (if any)
 
 Archive technical pitfalls immediately — do not wait for distillation.
 
@@ -130,18 +147,22 @@ Archive technical pitfalls immediately — do not wait for distillation.
 
 **Pitfall counter:** Add `[Occurrence #N]` to the title where N = total times this issue appeared.
 
----
+### C2. Non-pitfall rules (same step — no separate pass)
 
-## D. Reflection (if B or C has entries)
-
-Extract **actionable rules** from this session — not feelings:
+After archiving pitfalls, if the session also produced **non-pitfall** actionable rules,
+route them by nature — not feelings, rules:
 
 - General technical rules → append `knowledge-base/[category].md`
 - Project preferences → append `experience/skill-[id].md` refined zone
+  (project-ledger routing: write to the project's own docs or governance file instead)
 - Personal work habits → append `knowledge-base/user-dna.md`
 
 > ✅ Good: "Always specify `encoding='utf-8'` in Python `open()` to prevent Win32 mojibake."
 > ❌ Bad: "Remember to watch out for encoding."
+
+> **Why this is one step and not two:** extracting "actionable rules" and archiving
+> "technical pitfalls" have the same shape and the same destinations. Splitting them into
+> separate passes produced duplicate entries phrased two different ways.
 
 ---
 
@@ -159,9 +180,84 @@ If the `Sub-skills Used` field in the entry lists any secondary skills:
 
 ---
 
+## Accumulation Counter (runs every time — gates F and G)
+
+Count the pending entries `N` in the ledger you just wrote to:
+
+```bash
+python -c "import sys;sys.stdout.reconfigure(encoding='utf-8');print(open('experience/skill-<id>.md',encoding='utf-8').read().count('## 🔧'))"
+# project-ledger routing: count the project's case-ledger.md instead
+```
+
+| Result | Effect |
+|---|---|
+| `N < 5` | F and G run in **lightweight mode** only. Skip index rewrites and vector rebuilds. |
+| `N ≥ 5` | Run F and G **in full**, and surface a distillation reminder in the summary card. |
+
+The entry is already on disk either way — deferring only delays *searchability*, never durability.
+If the user says they need it searchable right now, run the full sync regardless of `N`.
+
+### Graduation check: should this skill move to project-ledger?
+
+When `N ≥ 5`, also check whether the skill has outgrown a single global experience file.
+A skill should **graduate to project-ledger** when it meets **both**:
+
+1. **It has its own project root** — real code, data, or a repo of its own; not just one `.md` file.
+2. **It generates cases continuously** — there's a loop; each run produces a new record.
+   A one-off task never graduates.
+
+If both hold, add a hint to the summary card. **Suggest only — never migrate automatically**,
+since this relocates the user's files.
+
+**What project-ledger means:** the global `experience/skill-{id}.md` stops holding cases and becomes
+a *map* (a `globalInterface`) — an entry point, a table of where each kind of knowledge lives inside
+the project, and a source-of-truth ordering. Full cases live in the project's own append-only
+`case-ledger.md`. The global file stays small and stops growing; the project owns its own history.
+
+**Migration order** (do not reorder — step 1 is what makes the rest reversible):
+
+1. Create a lossless archive of the current global file and verify it byte-for-byte (SHA-256).
+2. Move full cases into `<project>/references/case-ledger.md`.
+3. Rewrite the global file as a map: entry point, "where knowledge lives" table, source-of-truth order.
+4. Register the route under `experienceRouting` in `auto-skill.config.json`.
+
+```json
+"experienceRouting": {
+  "<skill-id>": {
+    "mode": "project-ledger",
+    "caseLedger":   "<project>/references/case-ledger.md",
+    "governance":   "<project>/references/experience-governance.md",
+    "legacyArchive":"<project>/references/legacy-experience-full.md",
+    "globalInterface": "{auto_skill}/experience/skill-<skill-id>.md",
+    "writeFullCaseToGlobal": false,
+    "globalInterfaceBaselineSha256": "<hash of the rewritten global file>"
+  }
+}
+```
+
+Once registered, section B writes full cases **only** to `caseLedger` — never back to the global file.
+The `baselineSha256` lets a validator detect the global map being silently overwritten.
+
+Skills with no project root of their own (a generic API wrapper, a formatting helper) should **stay
+global** — there is nowhere meaningful to move them, and centralizing them is the point.
+
+---
+
 ## F. Keyword Evolution (success tasks only — skip if Failed)
 
-1. Extract 2–4 terms from the task summary (the words you actually used).
+**Lightweight mode (`N < 5`)** — append candidates to a queue; do **not** open the trigger index:
+
+```markdown
+<!-- TRIGGER date={YYYY-MM-DD} skill={skill-id} -->
+- {candidate term 1}, {candidate term 2}
+```
+
+Write to `{auto_skill}/.trigger_queue.md`. The index is the most-read file in the system;
+a read-modify-write per task is the single most wasteful thing a debrief can do.
+
+**Full mode (`N ≥ 5`)** — process this task's terms plus everything queued:
+
+1. Extract 2–4 terms from the task summary (the words you actually used), plus queued candidates.
 2. Compare against the skill's `t[]` in `experience/_index.json`.
 3. For uncovered terms, propose:
 
@@ -178,6 +274,8 @@ with open(index_path, encoding='utf-8') as f: data = json.load(f)
 with open(index_path, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
 ```
+
+5. Clear `.trigger_queue.md` after a successful write so candidates aren't reprocessed.
 
 > ⚠️ **Windows encoding rule**: always `encoding='utf-8'` for all JSON/MD read-write.
 > Never use `echo >>` for any `.md` file — it produces UTF-16LE corruption.
@@ -214,10 +312,22 @@ is findable even before formal distillation runs.
 💡 Reflection: <What to do differently next time; omit if none>
 🧠 New Knowledge: <Which KB category, or "None">
 🔗 Sub-skills: <skill-id-1>, <skill-id-2>
+🧵 Backlog: <ledger> N/5 pending
 ⏭️ Next Steps:
    * [ ] <Todo 1>
 ═══════════════════════════════════════════════
 ```
+
+**Backlog line — append a hint based on the Accumulation Counter:**
+
+| Condition | Append to the `🧵` line |
+|---|---|
+| `N < 5` | nothing (just show `N/5`) |
+| `N ≥ 5` | `→ time to distill` |
+| `N ≥ 5` and both graduation criteria met | add a line: `🏗️ Consider project-ledger: <skill-id> has its own project root and keeps producing cases` |
+
+This is the system telling you when to prune it — without it, ledgers grow until a load becomes
+expensive and nobody notices why.
 
 **H2. Append to diary queue** (`{auto_skill}/.diary_queue.md`):
 ```markdown
@@ -236,15 +346,27 @@ is findable even before formal distillation runs.
 
 ---
 
-## G. System Sync (if B, C, or D had any writes)
+## G. System Sync (if B or C had any writes)
+
+### G1. Lightweight — run every time (cheap, and it catches breakage early)
 
 ```bash
-# 1. Rebuild index (count+1, last_updated)
+# Rebuild index (count+1, last_updated); also finds new files and repairs stale paths
 python scripts/experience_api.py update-index
+```
 
-# 2. Rebuild search vectors (if using qmd)
+Under project-ledger routing, skip the global count bump — the case lives in the project ledger,
+not in the global index.
+
+### G2. Heavy — **only when `N ≥ 5`**
+
+```bash
+# Rebuild search vectors — a full rebuild, slow once the corpus is large
 # qmd embed
 
-# 3. Sync to vault mirror
+# Sync to vault mirror
 python scripts/bridge_sync.py push
 ```
+
+> Skipping G2 does not risk data: entries are already written to disk. They are simply not yet
+> in the vector index, and get picked up on the next threshold run.

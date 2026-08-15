@@ -57,6 +57,47 @@ graph LR
 
 ---
 
+## 📦 Project-Ledger Mode — for skills that outgrow one file
+
+Every memory system has the same failure mode: the file the AI reads *every time* keeps growing,
+until startup costs more than the task. Distilling helps, but a busy skill outruns distillation.
+
+Project-ledger mode splits the two jobs that one file was doing:
+
+| | Global `experience/skill-{id}.md` | Project `references/case-ledger.md` |
+|---|---|---|
+| Role | A **map** — entry point, where knowledge lives, source-of-truth order | The **history** — full cases, append-only |
+| Read | Every task | Only when the task needs case history |
+| Grows | No | Yes — and that's fine, nothing loads it by default |
+
+**Graduate a skill when both are true:** it has its own project root (real code/data/repo, not just
+a `.md`), and it produces cases continuously. Skills with no project of their own stay global —
+centralizing them is the point.
+
+Register it under `experienceRouting` in your config (see `auto-skill.config.example.json`), and
+`SKILL_CLOSE` routes full cases to the project ledger automatically. Migration order matters:
+**archive losslessly first** (verify SHA-256), then move cases, then rewrite the global file as a map.
+
+> `SKILL_CLOSE` also *suggests* graduation on its own — when a ledger passes 5 pending entries and
+> the skill meets both criteria, the summary card says so. It suggests; it never moves your files.
+
+---
+
+## ⚖️ Deferred Sync — a debrief should cost a file write
+
+Archiving one entry used to trigger a full trigger-index rewrite, a vector rebuild, and a vault
+mirror push. That's a fixed tax on every task, most of it wasted: the index rarely changes, and
+a single new entry rarely needs to be searchable in the next 30 seconds.
+
+v4.2 splits the debrief into lightweight and heavy paths. Heavy work is deferred until a ledger
+hits **5 pending entries**, then runs once for everything accumulated. Candidate trigger words
+queue up in `.trigger_queue.md` instead of reopening the index each time.
+
+Nothing is at risk while deferred — entries are on disk immediately. Only *searchability* waits,
+and the summary card shows the backlog (`🧵 <ledger> N/5 pending`) so it's never silent.
+
+---
+
 ## 🧰 Integrated Module Guide
 
 ### 📔 1. Diary Skill (The Narrative Layer)

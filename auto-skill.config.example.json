@@ -1,5 +1,5 @@
 {
-  "version": "4.0.0",
+  "version": "4.2.0",
   "description": "Auto-Skill configuration template. Update paths for your environment.",
 
   "pathTemplates": {
@@ -29,6 +29,20 @@
   "specialPaths": {
     "vault": "{USER_HOME}/note",
     "diary": "{vault}/10_Daily"
+  },
+
+  "experienceRouting": {
+    "_comment": "Optional. Graduate a skill here once it has BOTH its own project root AND a loop that keeps producing cases. Full cases then live in the project's case-ledger, and the global experience file becomes a map. Delete this block if unused.",
+
+    "<your-skill-id>": {
+      "mode": "project-ledger",
+      "caseLedger":     "<project-root>/references/case-ledger.md",
+      "governance":     "<project-root>/references/experience-governance.md",
+      "legacyArchive":  "<project-root>/references/legacy-experience-full.md",
+      "globalInterface": "{auto_skill}/experience/skill-<your-skill-id>.md",
+      "writeFullCaseToGlobal": false,
+      "globalInterfaceBaselineSha256": "<sha256 of the rewritten global map — lets a validator detect silent overwrites>"
+    }
   },
 
   "mcpSkills": ["voicebox", "colab-mcp"],
