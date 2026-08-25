@@ -293,8 +293,19 @@ python scripts/experience_api.py snapshot \
   --task-type <type>
 ```
 
-This writes a `## 💥 Snapshot` entry to the most relevant KB category so the failure
+This writes a `## 💥 Snapshot` entry to the matching KB category so the failure
 is findable even before formal distillation runs.
+
+**Routing is match-or-refuse.** If no KB category matches the `--skill-id`, the command
+writes nothing and exits `2` with a `CLASSIFICATION NEEDED` message. That is not an error
+to work around — it means the lesson has no home yet. Either append it deliberately to a
+category you choose (`add <category-id> "<entry>" --kb`), or add a new category to
+`knowledge-base/_index.json` first. Creating a category is an intentional act, never a
+side effect of a snapshot.
+
+> `user-dna` is never a snapshot target. It is startup context (environment and
+> preferences), so a technical failure written there both corrupts that record and raises
+> the fixed per-session cost.
 
 ---
 
