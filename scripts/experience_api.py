@@ -263,27 +263,51 @@ def cmd_add(skill_id, content, is_kb=False):
 
 # ── Snapshot (Failure / Multi-attempt lesson) ─────────────────────────────────
 
+# Categories that must never receive a generic technical snapshot.
+# user-dna.md is startup context (environment and preferences); polluting it with
+# failure snapshots corrupts that record and grows the fixed per-session cost.
+PROTECTED_KB_CATEGORIES = {"user-dna"}
+
+
 def cmd_snapshot(skill_id, lesson, task_type="general"):
     """
     Append a compact failure/lesson snapshot directly to knowledge-base.
     Used by SKILL_CLOSE Step F2 for failed tasks or tasks with ≥3 attempts.
+
+    Routing is match-or-refuse. There is deliberately NO fallback category:
+    "the first category in the index" is not a semantic match, and treating it as
+    one silently routed every unclassifiable snapshot into whatever happened to be
+    listed first (on a default install, user-dna).
+
+    Returns True if a snapshot was written, False if the caller must classify first.
     """
     today = get_today()
     kb_index = load_json(KB_INDEX)
+    categories = kb_index.get("categories", []) if kb_index else []
 
-    target_cat = None
-    if kb_index:
-        target_cat = next(
-            (c for c in kb_index.get("categories", []) if skill_id in c.get("id", "")),
-            None
-        )
-        if not target_cat:
-            cats = kb_index.get("categories", [])
-            target_cat = cats[0] if cats else None
+    if not categories:
+        print("No KB categories found. Run preflight or create knowledge-base/_index.json.")
+        return False
+
+    target_cat = next(
+        (
+            c for c in categories
+            if c.get("id") not in PROTECTED_KB_CATEGORIES
+            and skill_id in c.get("id", "")
+        ),
+        None
+    )
 
     if not target_cat:
-        print("No KB categories found. Run preflight or create knowledge-base/_index.json.")
-        return
+        available = [c.get("id") for c in categories if c.get("id") not in PROTECTED_KB_CATEGORIES]
+        print(
+            f"CLASSIFICATION NEEDED: no KB category matches skill-id '{skill_id}'. Nothing was written.\n"
+            f"  Eligible categories: {available or '(none)'}\n"
+            f"  Protected (never a snapshot target): {sorted(PROTECTED_KB_CATEGORIES)}\n"
+            f"  Next: append deliberately with  `add <category-id> \"<entry>\" --kb`,\n"
+            f"        or add a new category to knowledge-base/_index.json first."
+        )
+        return False
 
     file_path = KB_DIR / target_cat["file"]
     if not file_path.exists():
@@ -302,11 +326,11 @@ def cmd_snapshot(skill_id, lesson, task_type="general"):
 
     target_cat["count"] = target_cat.get("count", 0) + 1
     target_cat["last_updated"] = today
-    if kb_index:
-        kb_index["lastUpdated"] = today
-        save_json(KB_INDEX, kb_index)
+    kb_index["lastUpdated"] = today
+    save_json(KB_INDEX, kb_index)
 
     print(f"Snapshot written to {target_cat['file']}: {lesson[:60]}...")
+    return True
 
 
 # ── Preflight ────────────────────────────────────────────────────────────────
@@ -377,7 +401,10 @@ if __name__ == "__main__":
     elif args.command == "add":
         cmd_add(args.skill_id, args.content, is_kb=args.kb)
     elif args.command == "snapshot":
-        cmd_snapshot(args.skill_id, args.lesson, task_type=args.task_type)
+        # Exit 2 on refusal so a caller (SKILL_CLOSE F2) can tell "classify first"
+        # apart from a successful write.
+        if not cmd_snapshot(args.skill_id, args.lesson, task_type=args.task_type):
+            sys.exit(2)
     elif args.command == "preflight":
         cmd_preflight()
     else:
